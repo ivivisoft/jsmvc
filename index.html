@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="http://code.jquery.com/jquery-2.2.4.min.js"
+            integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="lib/jquery.tmpl.js"></script>
+    <script type="text/javascript" src="klass.js"></script>
+    <script src="file.js" type="text/javascript"></script>
+
+    <style type="text/css">
+        .active {
+            visibility: visible;
+        }
+
+        .unactive {
+            visibility: hidden;
+        }
+    </style>
+
+</head>
+<body>
+<button id="clicky">点击</button>
+<button id="view">鼠标</button>
+
+<ul id="tabs">
+    <li data-tab="users">Users</li>
+    <li data-tab="groups">Groups</li>
+</ul>
+<div id="tabContent">
+    <div data-tab="users">Users Content</div>
+    <div data-tab="groups">Groups Content</div>
+</div>
+
+
+<div id="users">
+    <form>
+        <input type="search" value="" placeholder="Enter a query">
+        <button>Search</button>
+    </form>
+</div>
+
+<ul id="userss">
+
+</ul>
+<input type="file" multiple/>
+
+<div id = "dragme" draggable="true">Drag me!</div>
+</body>
+
+<script id="userTmpl" type="text/x-jquery-tmpl">
+    <li>${name}</li>
+
+</script>
+<script type="text/javascript" src="test.js"></script>
+<script type="text/javascript" src="jqueryplug.js"></script>
+
+
+<script type="text/javascript" src="PubSub.js"></script>
+<script type="text/javascript" src="model.js"></script>
+<script type="text/javascript" src="controller.js"></script>
+<script type="text/javascript" src="statemachine.js"></script>
+<script type="text/javascript" src="view.js"></script>
+
+<script src="qunittests.js"></script>
+
+<script type="text/javascript">
+    //    jQuery('#tabs').tabs('#tabContent');
+    //    jQuery('#tabs').trigger('change.tabs', 'groups');
+    //    var Assert = Model.create();
+    //    Assert.attributes = ['id', 'name', 'password'];
+    ////    jQuery.getJSON("/Users.json", function (result) {
+    ////        Assert.populate(result.users);
+    ////        Assert.saveLocal("users");
+    ////        console.log(Assert.findAll());
+    ////        Assert.loadLocal("users");
+    ////    });
+    //
+    //    Assert.loadLocal("users");
+    //    console.log(Assert.findAll());
+    //    var assert = Assert.init({id:4,name:'lili',password:'123'});
+    ////    assert.id=4;
+    ////    assert.name='lili';
+    ////    assert.password='123';
+    //    assert.save();
+    //    console.log(assert.attributes())
+    //    console.log(Assert.findAll());
+    //    var assert3 = Assert.find(4);
+    //    console.log(assert3);
+    //    assert.destroy();
+    //    console.log(Assert.findAll());
+
+    //    jQuery(function () {
+    //        var ToggleView = Controller.create({
+    //            init: function (view) {
+    //                this.view = jQuery(view);
+    //                this.data = 'my data';
+    //                //需要访问this中的数据,别忘了使用this.proxy改变访问对象
+    //                this.view.mouseover(this.proxy(this.toggleClass));
+    //                this.view.mouseout(this.proxy(this.toggleClass));
+    //            },
+    //            toggleClass: function () {
+    //                console.log('mouseover...' + this.data);
+    //            }
+    //        });
+    //
+    //        //实例化控制器,调用init方法
+    //        new ToggleView("#view");
+    //    });
+
+
+    //controller使用方式终极版
+    var exports = this;
+    //DOM加载之后执行
+    jQuery(function () {
+        exports.SearchView = Controller.create({
+            //所有事件名称,选择器和回调的映射
+            events: {
+                "submit form": "search"
+            },
+            //选择器到局部变量名的映射
+            elements: {
+                "input[type=search]": "searchInput",
+                "form": "searchForm"
+            },
+            //实例化时调用
+            init: function (element) {
+                this.el = $(element);
+                this.refreshElements();
+                this.delegateEvents();
+            },
+
+            search: function () {
+                console.log("Searching:", this.searchInput.val());
+                return false;
+            },
+            //私有
+            $: function (selector) {
+                //需要一个`el`属性,同时传入选择器
+                return $(selector, this.el);
+            },
+            //根据第一个空格来分割
+            eventSplitter: /^(\w+)\s*(.*)$/,
+
+            delegateEvents: function () {
+                for (var key in this.events) {
+                    var methodName = this.events[key];
+                    var method = this.proxy(this[methodName]);
+                    var match = key.match(this.eventSplitter);
+                    var eventName = match[1], selector = match[2];
+                    if (selector === '') {
+                        this.el.bind(eventName, method);
+                    } else {
+                        this.el.delegate(selector, eventName, method);
+                    }
+                }
+            },
+            //设置本地变量
+            refreshElements: function () {
+                for (var key in this.elements) {
+                    this[this.elements[key]] = this.$(key);
+                }
+            }
+        });
+        new SearchView("#users");
+    });
+
+    //模型中的事件绑定
+    var User = function (name) {
+        this.name = name;
+    };
+    User.records = [];
+    User.bind = function (ev, callback) {
+        var calls = this._callbacks || (this._callbacks = {});
+        (calls[ev] || (calls[ev] = [])).push(callback);
+    };
+    User.trigger = function (ev) {
+        var list, calls;
+        if (!(calls = this._callbacks))return this;
+        if (!(list = calls[ev]))return this;
+        jQuery.each(list, function () {
+            this();
+        });
+    };
+    User.create = function (name) {
+        this.records.push(new this(name));
+        this.trigger("change");
+    };
+    jQuery(function ($) {
+        User.bind("change", function () {
+            var template = $("#userTmpl").tmpl(User.records);
+            $("#userss").empty();
+            $("#userss").append(template);
+        });
+
+
+        //触发change事件
+        User.create("Sam Seaborn");
+        User.create("Andy Zhang");
+    });
+
+
+    jQuery(function () {
+        //测试文件
+        var input = $("input[type=file]");
+        input.change(function () {
+            var files = this.files;
+            for(var i=0;i<files.length;i++){
+                console.log(files[i].type);
+            }
+        });
+
+        //测试拖拽
+        var element = $("#dragme");
+        element.bind("dragstart",function (event) {
+            //我们不想使用jQuery的抽象方法
+            event = event.originalEvent;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain",$(this).text());
+            event.dataTransfer.setData("text/html",$(this).html());
+            event.dataTransfer.setDragImage("images/cat.jpg",-10,-10);
+        })
+    });
+
+
+</script>
+
+</html>
