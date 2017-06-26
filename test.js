@@ -28,7 +28,7 @@ var Animal = function () {
 Animal.id = '123';
 Animal.prototype.breath = function () {
     console.log('Animal breath...');
-}
+};
 
 
 var Dog = function () {

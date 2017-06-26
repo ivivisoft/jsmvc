@@ -12,7 +12,7 @@ var Class = function Class(parent) {
     if (parent) {
         //这个小技巧,避免了在继承类的时候创建实例
         var subclass = function () {
-        }
+        };
         //暗示了只有实例的属性会被继承,而非类属性.
         //关于javascript怎么查找属性:
         // 她会先找类本身有没有这个属性,再去寻找其原型有么有,
@@ -25,7 +25,7 @@ var Class = function Class(parent) {
 
     klass.prototype.init = function () {
         console.log('klass init...')
-    }
+    };
     //定义prototype的别名
     klass.fn = klass.prototype;
     //定义类的别名
@@ -59,7 +59,7 @@ var Class = function Class(parent) {
             klass.fn[i] = obj[i];
         }
         if (included) included(klass);
-    }
+    };
     return klass;
 };
 
